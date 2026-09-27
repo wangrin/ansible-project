@@ -1,0 +1,16 @@
+---
+- name: Test connexion AWX vers MongoDB
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: Test Ansible ping
+      ansible.builtin.ping:
+
+    - name: Afficher le système
+      ansible.builtin.debug:
+        msg: >
+          Host={{ inventory_hostname }}
+          OS={{ ansible_distribution }}
+          Version={{ ansible_distribution_version }}
+          Architecture={{ ansible_architecture }}
