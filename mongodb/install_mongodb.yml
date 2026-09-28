@@ -1,0 +1,77 @@
+---
+- name: Installer MongoDB 8.0 Community
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Vérifier Ubuntu 24.04
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("24.04", ">=")
+          - ansible_architecture == "x86_64"
+        fail_msg: "Serveur non compatible avec ce playbook MongoDB 8.0"
+
+    - name: Installer les prérequis
+      ansible.builtin.apt:
+        name:
+          - curl
+          - gnupg
+          - ca-certificates
+        state: present
+        update_cache: true
+
+    - name: Télécharger la clé GPG MongoDB 8.0
+      ansible.builtin.get_url:
+        url: https://pgp.mongodb.com/server-8.0.asc
+        dest: /tmp/mongodb-server-8.0.asc
+        mode: '0644'
+
+    - name: Installer la clé GPG MongoDB
+      ansible.builtin.command:
+        cmd: >
+          gpg --dearmor --yes
+          --output /usr/share/keyrings/mongodb-server-8.0.gpg
+          /tmp/mongodb-server-8.0.asc
+      changed_when: true
+
+    - name: Configurer le dépôt MongoDB 8.0
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/mongodb-org-8.0.list
+        mode: '0644'
+        content: |
+          deb [ arch=amd64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse
+
+    - name: Actualiser le cache APT
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Installer MongoDB Community
+      ansible.builtin.apt:
+        name: mongodb-org
+        state: present
+
+    - name: Activer et démarrer MongoDB
+      ansible.builtin.systemd:
+        name: mongod
+        enabled: true
+        state: started
+
+    - name: Vérifier mongod
+      ansible.builtin.command: systemctl is-active mongod
+      register: mongod_status
+      changed_when: false
+
+    - name: Afficher le statut
+      ansible.builtin.debug:
+        msg: "MongoDB status = {{ mongod_status.stdout }}"
+
+    - name: Vérifier la version MongoDB
+      ansible.builtin.command: mongod --version
+      register: mongodb_version
+      changed_when: false
+
+    - name: Afficher la version
+      ansible.builtin.debug:
+        var: mongodb_version.stdout_lines
