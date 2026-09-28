@@ -1,0 +1,15 @@
+---
+- name: Test sudo AWX vers MongoDB
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Vérifier sudo
+      become: true
+      ansible.builtin.command: id
+      register: sudo_test
+      changed_when: false
+
+    - name: Afficher le résultat
+      ansible.builtin.debug:
+        var: sudo_test.stdout
